@@ -13,8 +13,15 @@ processing to remove scale-marks and apply basic annotations.
 
 ## Run
 
-After cloning the repo, create a virtual environment inside and install 
-the dependencies:
+After cloning the repo, if necessary, create a conda environment with python>=3.8 and install
+virtualenv
+```bash
+conda create --name viewer python=3.9
+conda activate viewer
+pip install virtualenv
+```
+
+create a virtual environment inside and install the dependencies:
 ```bash
 python -m virtualenv venv
 source venv/bin/activate
@@ -23,7 +30,7 @@ pip install -r requirements.txt
 
 on Windows the environment activation goes something like:
 ```bash
-.\venv\bin\activate
+.\venv\Scripts\activate
 ```
 and to run:
 ```bash
