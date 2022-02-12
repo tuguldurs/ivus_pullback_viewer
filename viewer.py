@@ -49,6 +49,7 @@ class WidgetCoords:
         search_out - Header tag search output textbox widget coordinates.
         header - Full header display button widget coordinates.
         rmscale - Scale remover button widget coordinates.
+        annotate - Annotation button widget coordinates.
     """
 
     slider     = [0.23, 0.02, 0.56, 0.04]
@@ -56,6 +57,7 @@ class WidgetCoords:
     search_out = [0.50, 0.90, 0.40, 0.08]
     header     = [0.80, 0.80, 0.20, 0.04]
     rmscale    = [0.80, 0.70, 0.20, 0.04]
+    annotate   = [0.80, 0.60, 0.20, 0.04]
 
 
 class WidgetCreator:
@@ -114,6 +116,37 @@ class WidgetCreator:
             )
         return rmscale
 
+    @staticmethod
+    def annotate(coords) -> Button:
+        """Creates annotation button."""
+        ax_annotate = plt.axes(coords)
+        annotate = Button(
+            ax_annotate, 'Annotate',
+            hovercolor='0.975'
+            )
+        return annotate
+
+
+class LineBuilder:
+    """Creates and logs annotation points."""
+    def __init__(self, line):
+        self.line = line
+        self.xs = list(line.get_xdata())
+        self.ys = list(line.get_ydata())
+        self.cid = line.figure.canvas.mpl_connect('button_press_event', self)
+        with open('annotations.dat', 'w') as handler:
+            ...
+
+    def __call__(self, event):
+        with open('annotations.dat', 'a') as handler:
+            handler.write(f'{event}\n')
+        if event.inaxes!=self.line.axes:
+            return
+        self.xs.append(event.xdata)
+        self.ys.append(event.ydata)
+        self.line.set_data(self.xs, self.ys)
+        self.line.figure.canvas.draw()
+
 
 class Viewer:
     """Main viewer object."""
@@ -136,12 +169,14 @@ class Viewer:
         self.search_out = self.widget.search_out(self.coords.search_out)
         self.header = self.widget.header(self.coords.header)
         self.rmscale = self.widget.rmscale(self.coords.rmscale)
+        self.annotate = self.widget.annotate(self.coords.annotate)
 
         # actions
         self.slider.on_changed(self.update_frame)
         self.search_in.on_submit(self.submit)
         self.header.on_clicked(self.open_header)
         self.rmscale.on_clicked(self.remove_scale)
+        self.annotate.on_clicked(self.annotator)
 
         plt.show()
 
@@ -192,6 +227,14 @@ class Viewer:
         diff = red_channel - avg_signal
         raw_frame[diff > 0] = np.array([0,0,0])
         self.img.set_data(raw_frame)
+
+    def annotator(self, event) -> None:
+        """Applies point annotations."""
+        line, = self.ax.plot([], [], 
+            linestyle="none", 
+            marker="o", 
+            color="r")
+        linebuilder = LineBuilder(line)
 
 
 if __name__ == '__main__':
