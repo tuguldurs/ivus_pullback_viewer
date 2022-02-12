@@ -109,7 +109,9 @@ class Viewer:
         self.img.set_data(self.pb.video[current_idx])
 
     def submit(self, tag_name) -> None:
-        non_valid_str = 'not a valid tag'
+        """Searches for a tag by name in header and 
+            outputs results in search_out."""
+        non_valid_str = 'not a valid tag name'
         try:
             header_line = self.pb.dcm.data_element(tag_name)
         except KeyError:
