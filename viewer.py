@@ -139,7 +139,7 @@ class Viewer:
             value = f'{header_line}'.split(':')[-1].strip()
         self.search_out.set_val(value)
 
-    def open_header(self, event):
+    def open_header(self, event) -> None:
         """Creates and opens full header as txt file."""
         filename = 'header.txt'
         with open(filename, 'w') as handler:
