@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import os
+import sys
 import argparse
 import logging
+import subprocess
 from dataclasses import dataclass
 
 import numpy as np
@@ -43,6 +46,7 @@ class WidgetCoords:
         self.slider = self._get_slider()
         self.search_in = self._get_search_in()
         self.search_out = self._get_search_out()
+        self.header = self._get_header()
 
     def _get_slider(self) -> list:
         """Creates slider coordinates."""
@@ -55,6 +59,10 @@ class WidgetCoords:
     def _get_search_out(self) -> list:
         """Creates tag search output box coordinates."""
         return [0.5, 0.9, 0.4, 0.08]
+
+    def _get_header(self) -> list:
+        """Creates full header box coordinates."""
+        return [0.8, 0.8, 0.2, 0.04]
 
 
 class Viewer:
@@ -71,6 +79,8 @@ class Viewer:
         self.search_in = self._get_search_in(self.coords.search_in)
         self.search_in.on_submit(self.submit)
         self.search_out = self._get_search_out(self.coords.search_out)
+        self.header = self._get_header(self.coords.header)
+        self.header.on_clicked(self.open_header)
         plt.show()
 
     def base_figure(self, bot=0.15, left=0.05) -> tuple:
@@ -103,6 +113,13 @@ class Viewer:
         tag_search_output = TextBox(ax_search_out, '', initial='tag value')
         return tag_search_output
 
+    def _get_header(self, coords) -> Button:
+        """Creates header button."""
+        ax_header = plt.axes(coords)
+        button_header = Button(ax_header, 'Show Full Header', 
+            hovercolor='0.975')
+        return button_header
+
     def update_frame(self, val) -> None:
         """Updates image with current frame from slider."""
         current_idx = int(round(self.slider.val))
@@ -121,6 +138,18 @@ class Viewer:
         else:
             value = f'{header_line}'.split(':')[-1].strip()
         self.search_out.set_val(value)
+
+    def open_header(self, event):
+        """Creates and opens full header as txt file."""
+        filename = 'header.txt'
+        with open(filename, 'w') as handler:
+            for tag in self.pb.dcm.dir():
+                handler.write(f'{self.pb.dcm.data_element(tag)}\n')
+        if sys.platform == "win32":
+            os.startfile(filename)
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.call([opener, filename])
 
 
 if __name__ == '__main__':
