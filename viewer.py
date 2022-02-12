@@ -39,30 +39,21 @@ class PullBack:
         log.info(f'number of frames = {self.n_frames}')
 
 
+@dataclass
 class WidgetCoords:
-    """Generates widget coordinates."""
+    """Sets widget coordinates [x, y, dx, dy].
+    
+    Attributes:
+        slider - Frame slider widget coordinates.
+        search_in - Header tag search input textbox widget coordinates.
+        search_out - Header tag search output textbox widget coordinates.
+        header - Full header display button widget coordinates.
+    """
 
-    def __init__(self) -> None:
-        self.slider = self._get_slider()
-        self.search_in = self._get_search_in()
-        self.search_out = self._get_search_out()
-        self.header = self._get_header()
-
-    def _get_slider(self) -> list:
-        """Creates slider coordinates."""
-        return [0.23, 0.02, 0.56, 0.04]
-
-    def _get_search_in(self) -> list:
-        """Creates tag search box coordinates."""
-        return [0.2, 0.9, 0.25, 0.08]
-
-    def _get_search_out(self) -> list:
-        """Creates tag search output box coordinates."""
-        return [0.5, 0.9, 0.4, 0.08]
-
-    def _get_header(self) -> list:
-        """Creates full header box coordinates."""
-        return [0.8, 0.8, 0.2, 0.04]
+    slider     = [0.23, 0.02, 0.56, 0.04]
+    search_in  = [0.20, 0.90, 0.25, 0.08]
+    search_out = [0.50, 0.90, 0.40, 0.08]
+    header     = [0.80, 0.80, 0.20, 0.04]
 
 
 class Viewer:
