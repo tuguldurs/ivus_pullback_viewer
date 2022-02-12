@@ -56,22 +56,79 @@ class WidgetCoords:
     header     = [0.80, 0.80, 0.20, 0.04]
 
 
+class WidgetCreator:
+    """Creates various widgets."""
+    
+    @staticmethod
+    def slider(coords, start_frame, end_frame) -> Slider:
+        """Creates slider object."""
+        ax_slider = plt.axes(coords)
+        slider = Slider(
+            ax_slider, 'Frame #: ', 
+            start_frame, end_frame,
+            valinit=start_frame,
+            valstep=1,
+            color='green'
+            )
+        return slider
+
+    @staticmethod
+    def search_in(coords) -> TextBox:
+        """Creates tag search input box."""
+        ax_search_in = plt.axes(coords)
+        search_in = TextBox(
+            ax_search_in, 'Search Tag: ', 
+            initial='tag'
+            )
+        return search_in
+
+    @staticmethod
+    def search_out(coords) -> TextBox:
+        """Creates tag search output box."""
+        ax_search_out = plt.axes(coords)
+        search_out = TextBox(
+            ax_search_out, '', 
+            initial='tag value'
+            )
+        return search_out
+
+    @staticmethod
+    def header(coords) -> Button:
+        """Creates header button."""
+        ax_header = plt.axes(coords)
+        header = Button(
+            ax_header, 'Show Full Header', 
+            hovercolor='0.975'
+            )
+        return header
+
+
 class Viewer:
-    """Driver object."""
+    """Main viewer object."""
 
     def __init__(self, args) -> None:
         self.pb = PullBack(args.series_name)
-        self.coords = WidgetCoords()
         self.start_frame = 0
         self.end_frame = len(self.pb.video) - 1
         self.fig, self.ax, self.img = self.base_figure()
-        self.slider = self._get_slider(self.coords.slider, self.start_frame, self.end_frame)
+
+        # widgets
+        self.coords = WidgetCoords()
+        self.widget = WidgetCreator()
+        self.slider = self.widget.slider(
+            self.coords.slider, 
+            self.start_frame, 
+            self.end_frame
+            )
+        self.search_in = self.widget.search_in(self.coords.search_in)
+        self.search_out = self.widget.search_out(self.coords.search_out)
+        self.header = self.widget.header(self.coords.header)
+
+        # actions
         self.slider.on_changed(self.update_frame)
-        self.search_in = self._get_search_in(self.coords.search_in)
         self.search_in.on_submit(self.submit)
-        self.search_out = self._get_search_out(self.coords.search_out)
-        self.header = self._get_header(self.coords.header)
         self.header.on_clicked(self.open_header)
+
         plt.show()
 
     def base_figure(self, bot=0.15, left=0.05) -> tuple:
@@ -80,36 +137,6 @@ class Viewer:
         fig.subplots_adjust(bottom=bot, left=left)
         img = ax.imshow([[1,0],[0,1]])
         return fig, ax, img
-
-    def _get_slider(self, coords, start_frame, end_frame) -> Slider:
-        """Creates slider object."""
-        ax_slider = plt.axes(coords)
-        slider = Slider(
-            ax_slider, 'Frame #: ', start_frame, end_frame,
-            valinit=start_frame,
-            valstep=1,
-            color='green'
-            )
-        return slider
-
-    def _get_search_in(self, coords) -> TextBox:
-        """Creates tag search input box."""
-        ax_search_in = plt.axes(coords)
-        tag_search_input = TextBox(ax_search_in, 'Search Tag: ', initial='tag')
-        return tag_search_input
-
-    def _get_search_out(self, coords) -> TextBox:
-        """Creates tag search output box."""
-        ax_search_out = plt.axes(coords)
-        tag_search_output = TextBox(ax_search_out, '', initial='tag value')
-        return tag_search_output
-
-    def _get_header(self, coords) -> Button:
-        """Creates header button."""
-        ax_header = plt.axes(coords)
-        button_header = Button(ax_header, 'Show Full Header', 
-            hovercolor='0.975')
-        return button_header
 
     def update_frame(self, val) -> None:
         """Updates image with current frame from slider."""
