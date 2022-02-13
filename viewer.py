@@ -5,6 +5,7 @@ import sys
 import argparse
 import logging
 import subprocess
+from shutil import rmtree
 from dataclasses import dataclass
 
 import numpy as np
@@ -162,14 +163,19 @@ class MultiFrameViewer:
     """Main viewer object."""
 
     def __init__(self, args) -> None:
+
+        # Loads pullback data.
         self.pb = PullBack(args.series_name)
-        self.fig, self.ax, self.img = self.base_figure()
 
         # Initializes parameters and sets up output dir.
         self.start_frame = 0
         self.end_frame = len(self.pb.video) - 1
+        self.start_frame_blank = [[1,0],[0,1]]
         self.output_path = 'OUTPUT'
         self._output_dir()
+
+        # Sets up base figure.
+        self.fig, self.ax, self.img = self.base_figure()
 
         # Creates widgets.
         self.coords = WidgetCoords()
@@ -197,9 +203,10 @@ class MultiFrameViewer:
         plt.show()
 
     def _output_dir(self) -> None:
+        """Initializes output directory."""
         if os.path.isdir(self.output_path):
             log.info('old output directory removed.')
-            os.rmtree(self.output_path)
+            rmtree(self.output_path)
         log.info('output directory created.')
         os.mkdir(self.output_path)
 
@@ -207,7 +214,7 @@ class MultiFrameViewer:
         """Generates base figure, axis, and image objects."""
         fig, ax = plt.subplots()
         fig.subplots_adjust(bottom=bot, left=left)
-        img = ax.imshow([[1,0],[0,1]])
+        img = ax.imshow(self.start_frame_blank)
         return fig, ax, img
 
     def update_frame(self, val) -> None:
@@ -272,7 +279,7 @@ class MultiFrameViewer:
         fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
         ax.imshow(fixed_frame, cmap='gray')
         ax.axis('off')
-        plt.savefig('test.png')
+        plt.savefig(f'{self.output_path}/raw_{self.current_idx:04}.png')
         plt.close()
 
 
