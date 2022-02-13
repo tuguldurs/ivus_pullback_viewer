@@ -272,6 +272,16 @@ class MultiFrameViewer:
             color="r")
         linebuilder = LineBuilder(line)
 
+    def _gif_frame_idx(self) -> np.ndarray:
+        """Fetches list of frames indices for gif."""
+        start_idx = self.current_idx - 5 if self.current_idx >= 5 else 0
+        if self.current_idx <= self.end_frame - 5:
+            end_idx = self.current_idx + 5
+        else:
+            end_idx = self.end_frame
+        n_idx = end_idx - start_idx
+        return np.linspace(start_idx, end_idx, n_idx, dtype=int)
+
     def saver(self, event) -> None:
         """Saves annotated data and associated gif."""
         raw_frame = self.pb.video[self.current_idx]
@@ -279,8 +289,11 @@ class MultiFrameViewer:
         fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
         ax.imshow(fixed_frame, cmap='gray')
         ax.axis('off')
-        plt.savefig(f'{self.output_path}/raw_{self.current_idx:04}.png')
+        savename = f'{self.output_path}/raw_{self.current_idx:04}.png'
+        plt.savefig(savename)
         plt.close()
+        log.info(f'raw frame saved in {savename}')
+        print(self._gif_frame_idx())
 
 
 if __name__ == '__main__':
