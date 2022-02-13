@@ -12,6 +12,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Slider, Button, TextBox
 from pydicom import dcmread
+from imageio import imread as iio_imread
+from imageio import get_writer as iio_get_writer
 
 
 log  = logging.getLogger(__name__)
@@ -279,21 +281,28 @@ class MultiFrameViewer:
             end_idx = self.current_idx + 5
         else:
             end_idx = self.end_frame
-        n_idx = end_idx - start_idx
-        return np.linspace(start_idx, end_idx, n_idx, dtype=int)
+        n_idx = end_idx - start_idx + 1
+        return np.arange(n_idx) + start_idx
+
+    def _save_frame(self, idx: int, context: str) -> None:
+        """Saves image based on input index and context."""
+        frame = self.pb.video[idx]
+        if context == 'raw':
+            frame = self._remove_scale(frame)
+        fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
+        ax.imshow(frame, cmap='gray')
+        ax.axis('off')
+        savename = f'{self.output_path}/{context}_{idx:04}.png'
+        plt.savefig(savename)
+        plt.close()
+        log.info(f'{context} frame saved in {savename}.')
 
     def saver(self, event) -> None:
         """Saves annotated data and associated gif."""
-        raw_frame = self.pb.video[self.current_idx]
-        fixed_frame = self._remove_scale(raw_frame)
-        fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
-        ax.imshow(fixed_frame, cmap='gray')
-        ax.axis('off')
-        savename = f'{self.output_path}/raw_{self.current_idx:04}.png'
-        plt.savefig(savename)
-        plt.close()
-        log.info(f'raw frame saved in {savename}')
-        print(self._gif_frame_idx())
+        self._save_frame(self.current_idx, 'raw')
+        gif_idxs = self._gif_frame_idx()
+        for idx in gif_idxs:
+            self._save_frame(idx, 'gif')
 
 
 if __name__ == '__main__':
