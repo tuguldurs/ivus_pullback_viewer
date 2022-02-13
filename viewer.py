@@ -47,18 +47,18 @@ class WidgetCoords:
     """Sets widget coordinates [x, y, dx, dy].
     
     Attributes:
-        slider - Frame slider widget coordinates.
+        slider    - Frame slider widget coordinates.
         search_in - Header tag search input textbox widget coordinates.
-        search_out - Header tag search output textbox widget coordinates.
-        header - Full header display button widget coordinates.
-        rmscale - Scale remover button widget coordinates.
-        annotate - Annotation button widget coordinates.
+        console   - 'Console' output textbox widget coordinates.
+        header    - Full header display button widget coordinates.
+        rmscale   - Scale remover button widget coordinates.
+        annotate  - Annotation button widget coordinates.
         save_data - Save button widget coordinates.
     """
 
-    slider     = [0.23, 0.02, 0.56, 0.04]
-    search_in  = [0.20, 0.90, 0.25, 0.08]
-    search_out = [0.50, 0.90, 0.40, 0.08]
+    slider     = [0.15, 0.04, 0.60, 0.02]
+    search_in  = [0.80, 0.90, 0.25, 0.06]
+    console    = [0.04, 0.90, 0.55, 0.06]
     header     = [0.80, 0.80, 0.20, 0.04]
     rmscale    = [0.80, 0.70, 0.20, 0.04]
     annotate   = [0.80, 0.60, 0.20, 0.04]
@@ -94,14 +94,14 @@ class WidgetCreator:
         return search_in
 
     @staticmethod
-    def search_out(coords) -> TextBox:
-        """Creates tag search output box."""
-        search_out = TextBox(
+    def console(coords) -> TextBox:
+        """Creates text output box."""
+        console = TextBox(
             plt.axes(coords), 
             '', 
-            initial='tag value'
+            initial='value'
             )
-        return search_out
+        return console
 
     def header(self, coords) -> Button:
         """Creates header viewer button."""
@@ -134,7 +134,7 @@ class WidgetCreator:
         """Creates save button."""
         save = Button(
             plt.axes(coords),
-            'Save',
+            'Save with GIF',
             hovercolor=self.color
             )
         return save
@@ -188,7 +188,7 @@ class MultiFrameViewer:
             self.end_frame
             )
         self.search_in = self.widget.search_in(self.coords.search_in)
-        self.search_out = self.widget.search_out(self.coords.search_out)
+        self.console = self.widget.console(self.coords.console)
         self.header = self.widget.header(self.coords.header)
         self.rmscale = self.widget.rmscale(self.coords.rmscale)
         self.annotate = self.widget.annotate(self.coords.annotate)
@@ -226,8 +226,7 @@ class MultiFrameViewer:
         self.current_idx = current_idx
 
     def submit(self, tag_name) -> None:
-        """Searches for a tag by name in header and 
-            outputs results in search_out."""
+        """Searches for a tag by name in header."""
         non_valid_str = 'not a valid tag name'
         try:
             header_line = self.pb.dcm.data_element(tag_name)
@@ -237,7 +236,7 @@ class MultiFrameViewer:
             value = non_valid_str
         else:
             value = f'{header_line}'.split(':')[-1].strip()
-        self.search_out.set_val(value)
+        self.console.set_val(value)
 
     def open_header(self, event) -> None:
         """Creates and opens full header as txt file."""
@@ -302,10 +301,12 @@ class MultiFrameViewer:
         looping_idxs = np.append(idxs, inverse_idxs)
         savename = f'{self.output_path}/anim_{self.current_idx:04}.gif'
         with iio_get_writer(savename, mode='I') as gif_writer:
-            for idx in looping_idxs:
+            for i, idx in enumerate(looping_idxs):
                 fname = f'{self.output_path}/gif_{idx:04}.png'
                 img = iio_imread(fname)
                 gif_writer.append_data(img)
+                self.console.set_val(f'creating gif ... {i+1} / {len(looping_idxs)}')
+        log.info(f'gif animation saved in {savename}.')
 
     def saver(self, event) -> None:
         """Saves annotated data and associated gif."""
@@ -313,7 +314,9 @@ class MultiFrameViewer:
         gif_idxs = self._gif_frame_idx()
         for idx in gif_idxs:
             self._save_frame(idx, 'gif')
+            self.console.set_val(f'saving nearby frames ... {idx}')
         self._make_gif(gif_idxs)
+        self.console.set_val('done.')
 
 
 if __name__ == '__main__':
