@@ -50,6 +50,7 @@ class WidgetCoords:
         header - Full header display button widget coordinates.
         rmscale - Scale remover button widget coordinates.
         annotate - Annotation button widget coordinates.
+        save_data - Save button widget coordinates.
     """
 
     slider     = [0.23, 0.02, 0.56, 0.04]
@@ -58,30 +59,33 @@ class WidgetCoords:
     header     = [0.80, 0.80, 0.20, 0.04]
     rmscale    = [0.80, 0.70, 0.20, 0.04]
     annotate   = [0.80, 0.60, 0.20, 0.04]
+    save_data  = [0.80, 0.50, 0.20, 0.04]
 
 
 class WidgetCreator:
-    """Creates various widgets."""
+    """Creates various widget objects."""
+
+    def __init__(self) -> None:
+        self.color = 'green'
     
-    @staticmethod
-    def slider(coords, start_frame, end_frame) -> Slider:
+    def slider(self, coords, start_frame, end_frame) -> Slider:
         """Creates slider object."""
-        ax_slider = plt.axes(coords)
         slider = Slider(
-            ax_slider, 'Frame #: ', 
+            plt.axes(coords),
+            'Frame #: ', 
             start_frame, end_frame,
             valinit=start_frame,
             valstep=1,
-            color='green'
+            color=self.color
             )
         return slider
 
     @staticmethod
     def search_in(coords) -> TextBox:
         """Creates tag search input box."""
-        ax_search_in = plt.axes(coords)
         search_in = TextBox(
-            ax_search_in, 'Search Tag: ', 
+            plt.axes(coords),
+            'Search Tag: ', 
             initial='tag'
             )
         return search_in
@@ -89,42 +93,48 @@ class WidgetCreator:
     @staticmethod
     def search_out(coords) -> TextBox:
         """Creates tag search output box."""
-        ax_search_out = plt.axes(coords)
         search_out = TextBox(
-            ax_search_out, '', 
+            plt.axes(coords), 
+            '', 
             initial='tag value'
             )
         return search_out
 
-    @staticmethod
-    def header(coords) -> Button:
+    def header(self, coords) -> Button:
         """Creates header viewer button."""
-        ax_header = plt.axes(coords)
         header = Button(
-            ax_header, 'Show Full Header', 
-            hovercolor='0.975'
+            plt.axes(coords),
+            'Show Full Header', 
+            hovercolor=self.color
             )
         return header
 
-    @staticmethod
-    def rmscale(coords) -> Button:
+    def rmscale(self, coords) -> Button:
         """Creates scale remover button."""
-        ax_rmscale = plt.axes(coords)
         rmscale = Button(
-            ax_rmscale, 'Remove Scale', 
-            hovercolor='0.975'
+            plt.axes(coords),
+            'Remove Scale', 
+            hovercolor=self.color
             )
         return rmscale
 
-    @staticmethod
-    def annotate(coords) -> Button:
+    def annotate(self, coords) -> Button:
         """Creates annotation button."""
-        ax_annotate = plt.axes(coords)
         annotate = Button(
-            ax_annotate, 'Annotate',
-            hovercolor='0.975'
+            plt.axes(coords),
+            'Annotate',
+            hovercolor=self.color
             )
         return annotate
+
+    def save_data(self, coords) -> Button:
+        """Creates save button."""
+        save = Button(
+            plt.axes(coords),
+            'Save',
+            hovercolor=self.color
+            )
+        return save
 
 
 class LineBuilder:
@@ -170,6 +180,7 @@ class Viewer:
         self.header = self.widget.header(self.coords.header)
         self.rmscale = self.widget.rmscale(self.coords.rmscale)
         self.annotate = self.widget.annotate(self.coords.annotate)
+        self.save_data = self.widget.save_data(self.coords.save_data)
 
         # actions
         self.slider.on_changed(self.update_frame)
@@ -177,6 +188,7 @@ class Viewer:
         self.header.on_clicked(self.open_header)
         self.rmscale.on_clicked(self.remove_scale)
         self.annotate.on_clicked(self.annotator)
+        self.save_data.on_clicked(self.saver)
 
         plt.show()
 
@@ -235,6 +247,10 @@ class Viewer:
             marker="o", 
             color="r")
         linebuilder = LineBuilder(line)
+
+    def saver(self, event) -> None:
+        """Saves annotated data and associated gif."""
+        ...
 
 
 if __name__ == '__main__':
