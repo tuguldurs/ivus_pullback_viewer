@@ -287,8 +287,7 @@ class MultiFrameViewer:
     def _save_frame(self, idx: int, context: str) -> None:
         """Saves image based on input index and context."""
         frame = self.pb.video[idx]
-        if context == 'raw':
-            frame = self._remove_scale(frame)
+        frame = self._remove_scale(frame)
         fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
         ax.imshow(frame, cmap='gray')
         ax.axis('off')
@@ -297,12 +296,24 @@ class MultiFrameViewer:
         plt.close()
         log.info(f'{context} frame saved in {savename}.')
 
+    def _make_gif(self, idxs: np.ndarray) -> None:
+        """Creates gif based on base indices."""
+        inverse_idxs = idxs[::-1][1:]
+        looping_idxs = np.append(idxs, inverse_idxs)
+        savename = f'{self.output_path}/anim_{self.current_idx:04}.gif'
+        with iio_get_writer(savename, mode='I') as gif_writer:
+            for idx in looping_idxs:
+                fname = f'{self.output_path}/gif_{idx:04}.png'
+                img = iio_imread(fname)
+                gif_writer.append_data(img)
+
     def saver(self, event) -> None:
         """Saves annotated data and associated gif."""
         self._save_frame(self.current_idx, 'raw')
         gif_idxs = self._gif_frame_idx()
         for idx in gif_idxs:
             self._save_frame(idx, 'gif')
+        self._make_gif(gif_idxs)
 
 
 if __name__ == '__main__':
