@@ -192,6 +192,15 @@ class MultiFrameViewer:
 
         plt.show()
 
+    @staticmethod
+    def _output_dir() -> None:
+        output_path = 'OUTPUT'
+        if os.path.isdir(output_path):
+            log.info('old output directory removed.')
+            os.rmtree(output_path)
+        log.info('output directory created.')
+        os.mkdir(package_output_path)
+
     def base_figure(self, bot=0.15, left=0.05) -> tuple:
         """Generates base figure, axis, and image objects."""
         fig, ax = plt.subplots()
@@ -256,7 +265,13 @@ class MultiFrameViewer:
 
     def saver(self, event) -> None:
         """Saves annotated data and associated gif."""
-        ...
+        raw_frame = self.pb.video[self.current_idx]
+        fixed_frame = self._remove_scale(raw_frame)
+        fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
+        ax.imshow(fixed_frame, cmap='gray')
+        ax.axis('off')
+        plt.savefig('test.png')
+        plt.close()
 
 
 if __name__ == '__main__':
