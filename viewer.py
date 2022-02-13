@@ -158,7 +158,7 @@ class LineBuilder:
         self.line.figure.canvas.draw()
 
 
-class Viewer:
+class MultiFrameViewer:
     """Main viewer object."""
 
     def __init__(self, args) -> None:
@@ -231,14 +231,20 @@ class Viewer:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
         subprocess.call([opener, filename])
 
+    @staticmethod
+    def _remove_scale(frame) -> np.ndarray:
+        """Removes scale marks from input raw frame."""
+        red_channel = np.dot(frame[... , :3] , [1, 0, 0])
+        avg_signal = np.dot(frame[... , :3] , [1, 1, 1]) / 3
+        diff = red_channel - avg_signal
+        frame[diff > 0] = np.array([0,0,0])
+        return frame
+
     def remove_scale(self, event) -> None:
         """Removes scale marks from current frame."""
         raw_frame = self.pb.video[self.current_idx]
-        red_channel = np.dot(raw_frame[... , :3] , [1, 0, 0])
-        avg_signal = np.dot(raw_frame[... , :3] , [1, 1, 1]) / 3
-        diff = red_channel - avg_signal
-        raw_frame[diff > 0] = np.array([0,0,0])
-        self.img.set_data(raw_frame)
+        fixed_frame = self._remove_scale(raw_frame)
+        self.img.set_data(fixed_frame)
 
     def annotator(self, event) -> None:
         """Applies point annotations."""
@@ -260,4 +266,4 @@ if __name__ == '__main__':
                         help='path to input DICOM Mutiframe-Series')
     args = parser.parse_args()
 
-    Viewer(args)
+    MultiFrameViewer(args)
