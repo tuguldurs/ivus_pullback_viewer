@@ -163,11 +163,15 @@ class MultiFrameViewer:
 
     def __init__(self, args) -> None:
         self.pb = PullBack(args.series_name)
-        self.start_frame = 0
-        self.end_frame = len(self.pb.video) - 1
         self.fig, self.ax, self.img = self.base_figure()
 
-        # widgets
+        # Initializes parameters and sets up output dir.
+        self.start_frame = 0
+        self.end_frame = len(self.pb.video) - 1
+        self.output_path = 'OUTPUT'
+        self._output_dir()
+
+        # Creates widgets.
         self.coords = WidgetCoords()
         self.widget = WidgetCreator()
         self.slider = self.widget.slider(
@@ -182,7 +186,7 @@ class MultiFrameViewer:
         self.annotate = self.widget.annotate(self.coords.annotate)
         self.save_data = self.widget.save_data(self.coords.save_data)
 
-        # actions
+        # Assigns actions.
         self.slider.on_changed(self.update_frame)
         self.search_in.on_submit(self.submit)
         self.header.on_clicked(self.open_header)
@@ -192,14 +196,12 @@ class MultiFrameViewer:
 
         plt.show()
 
-    @staticmethod
-    def _output_dir() -> None:
-        output_path = 'OUTPUT'
-        if os.path.isdir(output_path):
+    def _output_dir(self) -> None:
+        if os.path.isdir(self.output_path):
             log.info('old output directory removed.')
-            os.rmtree(output_path)
+            os.rmtree(self.output_path)
         log.info('output directory created.')
-        os.mkdir(package_output_path)
+        os.mkdir(self.output_path)
 
     def base_figure(self, bot=0.15, left=0.05) -> tuple:
         """Generates base figure, axis, and image objects."""
