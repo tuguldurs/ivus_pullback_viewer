@@ -142,23 +142,23 @@ class WidgetCreator:
 
 class PointAnnotator:
     """Creates and logs annotation points."""
-    def __init__(self, line):
-        self.line = line
-        self.xs = list(line.get_xdata())
-        self.ys = list(line.get_ydata())
-        self.cid = line.figure.canvas.mpl_connect('button_press_event', self)
+    def __init__(self, point):
+        self.point = point
+        self.xs = list(point.get_xdata())
+        self.ys = list(point.get_ydata())
+        self.cid = point.figure.canvas.mpl_connect('button_press_event', self)
         with open('annotations.dat', 'w') as handler:
             ...
 
     def __call__(self, event):
         with open('annotations.dat', 'a') as handler:
             handler.write(f'{event}\n')
-        if event.inaxes!=self.line.axes:
+        if event.inaxes!=self.point.axes:
             return
         self.xs.append(event.xdata)
         self.ys.append(event.ydata)
-        self.line.set_data(self.xs, self.ys)
-        self.line.figure.canvas.draw()
+        self.point.set_data(self.xs, self.ys)
+        self.point.figure.canvas.draw()
 
 
 class MultiFrameViewer:
@@ -215,7 +215,7 @@ class MultiFrameViewer:
         for file in files:
             if os.path.isfile(file):
                 os.remove(file)
-                log.info('old files cleaned.')
+                log.info(f'old file cleaned - {file}.')
 
     def _output_dir(self) -> None:
         """Initializes output directory."""
@@ -227,6 +227,7 @@ class MultiFrameViewer:
         fig, ax = plt.subplots()
         fig.subplots_adjust(bottom=bot, left=left)
         img = ax.imshow(self.start_frame_blank)
+        ax.axis('off')
         return fig, ax, img
 
     def update_frame(self, val) -> None:
