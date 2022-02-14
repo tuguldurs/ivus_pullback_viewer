@@ -63,6 +63,7 @@ class WidgetCoords:
     rmscale    = [0.80, 0.70, 0.20, 0.04]
     annotate   = [0.80, 0.60, 0.20, 0.04]
     save_data  = [0.80, 0.50, 0.20, 0.04]
+    reset      = [0.80, 0.20, 0.20, 0.04]
 
 
 class WidgetCreator:
@@ -71,20 +72,24 @@ class WidgetCreator:
     def __init__(self) -> None:
         self.color = 'green'
     
-    def slider(self, coords, start_frame, end_frame) -> Slider:
+    def slider(self, 
+        coords: list, 
+        start_frame: int, 
+        end_frame: int,
+        init_frame: int) -> Slider:
         """Creates slider object."""
         slider = Slider(
             plt.axes(coords),
             'Frame #: ', 
             start_frame, end_frame,
-            valinit=start_frame,
+            valinit=init_frame,
             valstep=1,
             color=self.color
             )
         return slider
 
     @staticmethod
-    def search_in(coords) -> TextBox:
+    def search_in(coords: list) -> TextBox:
         """Creates tag search input box."""
         search_in = TextBox(
             plt.axes(coords),
@@ -94,7 +99,7 @@ class WidgetCreator:
         return search_in
 
     @staticmethod
-    def console(coords) -> TextBox:
+    def console(coords: list) -> TextBox:
         """Creates text output box."""
         console = TextBox(
             plt.axes(coords), 
@@ -103,7 +108,7 @@ class WidgetCreator:
             )
         return console
 
-    def header(self, coords) -> Button:
+    def header(self, coords: list) -> Button:
         """Creates header viewer button."""
         header = Button(
             plt.axes(coords),
@@ -112,7 +117,7 @@ class WidgetCreator:
             )
         return header
 
-    def rmscale(self, coords) -> Button:
+    def rmscale(self, coords: list) -> Button:
         """Creates scale remover button."""
         rmscale = Button(
             plt.axes(coords),
@@ -121,7 +126,7 @@ class WidgetCreator:
             )
         return rmscale
 
-    def annotate(self, coords) -> Button:
+    def annotate(self, coords: list) -> Button:
         """Creates annotation button."""
         annotate = Button(
             plt.axes(coords),
@@ -130,7 +135,7 @@ class WidgetCreator:
             )
         return annotate
 
-    def save_data(self, coords) -> Button:
+    def save_data(self, coords: list) -> Button:
         """Creates save button."""
         save = Button(
             plt.axes(coords),
@@ -139,10 +144,18 @@ class WidgetCreator:
             )
         return save
 
+    def reset(self, coords: list) -> Button:
+        """Creates save button."""
+        reset = Button(
+            plt.axes(coords),
+            'Reset',
+            hovercolor=self.color
+            )
+        return reset
 
 class PointAnnotator:
     """Creates and logs annotation points."""
-    def __init__(self, point):
+    def __init__(self, point: mpl.lines.Line2D):
         self.point = point
         self.xs = list(point.get_xdata())
         self.ys = list(point.get_ydata())
@@ -164,21 +177,23 @@ class PointAnnotator:
 class MultiFrameViewer:
     """Main viewer object."""
 
-    def __init__(self, args) -> None:
-
+    def __init__(self, args: argparse.Namespace) -> None:
         # Loads pullback data.
         self.pb = PullBack(args.series_name)
 
-        # Initializes parameters and sets up output dir.
-        self.start_frame = 0
-        self.end_frame = len(self.pb.video) - 1
-        self.start_frame_blank = [[1,0],[0,1]]
+        # Initializes parameters.
+        self.start_frame_idx = 0
+        self.init_frame_idx = 0
+        self.end_frame_idx = len(self.pb.video) - 1
+        self.start_frame = [[1,0], [0,1]]
         self.output_path = 'OUTPUT'
 
         self._cleanup()
         self._output_dir()
+        self._viewer_setup()
 
-        # Sets up base figure.
+    def _viewer_setup(self) -> None:
+        """Sets up viewer."""
         self.fig, self.ax, self.img = self.base_figure()
 
         # Creates widgets.
@@ -186,8 +201,9 @@ class MultiFrameViewer:
         self.widget = WidgetCreator()
         self.slider = self.widget.slider(
             self.coords.slider, 
-            self.start_frame, 
-            self.end_frame
+            self.start_frame_idx, 
+            self.end_frame_idx,
+            self.init_frame_idx
             )
         self.search_in = self.widget.search_in(self.coords.search_in)
         self.console = self.widget.console(self.coords.console)
@@ -195,6 +211,7 @@ class MultiFrameViewer:
         self.rmscale = self.widget.rmscale(self.coords.rmscale)
         self.annotate = self.widget.annotate(self.coords.annotate)
         self.save_data = self.widget.save_data(self.coords.save_data)
+        self.reset_plot = self.widget.reset(self.coords.reset)
 
         # Assigns actions.
         self.slider.on_changed(self.update_frame)
@@ -203,6 +220,7 @@ class MultiFrameViewer:
         self.rmscale.on_clicked(self.remove_scale)
         self.annotate.on_clicked(self.annotator)
         self.save_data.on_clicked(self.saver)
+        self.reset_plot.on_clicked(self.reset)
 
         plt.show()
 
@@ -222,21 +240,23 @@ class MultiFrameViewer:
         os.mkdir(self.output_path)
         log.info('output directory created.')
 
-    def base_figure(self, bot=0.15, left=0.05) -> tuple:
+    def base_figure(self, 
+            bottom: float = 0.15, 
+            left: float = 0.05) -> tuple:
         """Generates base figure, axis, and image objects."""
-        fig, ax = plt.subplots()
-        fig.subplots_adjust(bottom=bot, left=left)
-        img = ax.imshow(self.start_frame_blank)
+        fig, ax = plt.subplots(num=1)
+        fig.subplots_adjust(bottom=bottom, left=left)
+        img = ax.imshow(self.start_frame)
         ax.axis('off')
         return fig, ax, img
 
-    def update_frame(self, val) -> None:
+    def update_frame(self, val: float) -> None:
         """Updates image with current frame from slider."""
         current_idx = int(round(self.slider.val))
         self.img.set_data(self.pb.video[current_idx])
         self.current_idx = current_idx
 
-    def submit(self, tag_name) -> None:
+    def submit(self, tag_name: str) -> None:
         """Searches for a tag by name in header."""
         non_valid_str = 'not a valid tag name'
         try:
@@ -262,7 +282,7 @@ class MultiFrameViewer:
         subprocess.call([opener, filename])
 
     @staticmethod
-    def _remove_scale(frame) -> np.ndarray:
+    def _remove_scale(frame: np.ndarray) -> np.ndarray:
         """Removes scale marks from input raw frame."""
         red_channel = np.dot(frame[... , :3] , [1, 0, 0])
         avg_signal = np.dot(frame[... , :3] , [1, 1, 1]) / 3
@@ -287,10 +307,10 @@ class MultiFrameViewer:
     def _gif_frame_idx(self) -> np.ndarray:
         """Fetches list of frames indices for gif."""
         start_idx = self.current_idx - 5 if self.current_idx >= 5 else 0
-        if self.current_idx <= self.end_frame - 5:
+        if self.current_idx <= self.end_frame_idx - 5:
             end_idx = self.current_idx + 5
         else:
-            end_idx = self.end_frame
+            end_idx = self.end_frame_idx
         n_idx = end_idx - start_idx + 1
         return np.arange(n_idx) + start_idx
 
@@ -328,6 +348,14 @@ class MultiFrameViewer:
             self.console.set_val(f'saving nearby frames ... {idx}')
         self._make_gif(gif_idxs)
         self.console.set_val('done.')
+
+    def reset(self, event) -> None:
+        """Resets the viewer."""
+        self.fig.clear()
+        log.info('viewer reset.')
+        self.start_frame = self.pb.video[self.current_idx]
+        self.init_frame_idx = self.current_idx
+        self._viewer_setup()
 
 
 if __name__ == '__main__':
