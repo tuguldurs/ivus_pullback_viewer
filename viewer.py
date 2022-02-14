@@ -140,7 +140,7 @@ class WidgetCreator:
         return save
 
 
-class LineBuilder:
+class PointAnnotator:
     """Creates and logs annotation points."""
     def __init__(self, line):
         self.line = line
@@ -174,6 +174,8 @@ class MultiFrameViewer:
         self.end_frame = len(self.pb.video) - 1
         self.start_frame_blank = [[1,0],[0,1]]
         self.output_path = 'OUTPUT'
+
+        self._cleanup()
         self._output_dir()
 
         # Sets up base figure.
@@ -204,13 +206,21 @@ class MultiFrameViewer:
 
         plt.show()
 
+    def _cleanup(self) -> None:
+        """Cleans any files from previous session."""
+        if os.path.isdir(self.output_path):
+            rmtree(self.output_path)
+            log.info('old output directory removed.')
+        files = ['annotations.dat', 'header.txt']
+        for file in files:
+            if os.path.isfile(file):
+                os.remove(file)
+                log.info('old files cleaned.')
+
     def _output_dir(self) -> None:
         """Initializes output directory."""
-        if os.path.isdir(self.output_path):
-            log.info('old output directory removed.')
-            rmtree(self.output_path)
-        log.info('output directory created.')
         os.mkdir(self.output_path)
+        log.info('output directory created.')
 
     def base_figure(self, bot=0.15, left=0.05) -> tuple:
         """Generates base figure, axis, and image objects."""
@@ -267,11 +277,11 @@ class MultiFrameViewer:
 
     def annotator(self, event) -> None:
         """Applies point annotations."""
-        line, = self.ax.plot([], [], 
+        point, = self.ax.plot([], [], 
             linestyle="none", 
             marker="o", 
             color="r")
-        linebuilder = LineBuilder(line)
+        _ = PointAnnotator(point)
 
     def _gif_frame_idx(self) -> np.ndarray:
         """Fetches list of frames indices for gif."""
