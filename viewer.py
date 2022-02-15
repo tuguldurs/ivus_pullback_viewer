@@ -153,6 +153,7 @@ class WidgetCreator:
             )
         return reset
 
+
 class PointAnnotator:
     """Creates and logs annotation points."""
     def __init__(self, point: mpl.lines.Line2D):
@@ -185,8 +186,13 @@ class MultiFrameViewer:
         self.start_frame_idx = 0
         self.init_frame_idx = 0
         self.end_frame_idx = len(self.pb.video) - 1
-        self.start_frame = [[1,0], [0,1]]
+        frame_shape = self.pb.video[0].shape
+        self.start_frame = np.zeros(frame_shape)
         self.output_path = 'OUTPUT'
+        dx, dy, _ = frame_shape
+        self.x0, self.y0 = dx // 2, dy // 2
+        self.annotation_color = 'tomato'
+        self.annotation_lw = 5
 
         self._cleanup()
         self._output_dir()
@@ -301,7 +307,7 @@ class MultiFrameViewer:
         point, = self.ax.plot([], [], 
             linestyle="none", 
             marker="o", 
-            color="r")
+            color=self.annotation_color)
         _ = PointAnnotator(point)
 
     def _gif_frame_idx(self) -> np.ndarray:
@@ -326,6 +332,55 @@ class MultiFrameViewer:
         plt.close()
         log.info(f'{context} frame saved in {savename}.')
 
+    @staticmethod
+    def _read_annotations() -> tuple:
+        """Reads annotation x,y pixel coordinates."""
+        with open('annotations.dat', 'r') as annot_file:
+            lines = annot_file.readlines()
+        lines = lines[:-1]
+        x, y = np.zeros(len(lines)), np.zeros(len(lines))
+        for i, line in enumerate(lines):
+            xval = line.split(', ')[1].split('(')[-1]
+            yval = line.split(', ')[-1].split(')')[0]
+            x[i], y[i] = xval, yval
+        return x, y
+
+    def _to_polar(self, 
+            x: np.ndarray, 
+            y: np.ndarray) -> tuple:
+        """Converts Euclidean to Polar coordinates."""
+        z2polar = lambda z: (np.abs(z), np.angle(z, deg=True))
+        z = (x - self.x0) + 1j * (y - self.y0)
+        dists, angles = z2polar(z)
+        angles[angles < 0] += 360
+        return dists, angles
+
+    def _to_euclid(self, 
+            alpha: np.ndarray, 
+            dist: np.ndarray) -> tuple:
+        """Converts Polar to Euclidean coordinates."""
+        radangle = alpha * np.pi / 180.
+        x = dist * np.cos(radangle) + self.x0
+        y = dist * np.sin(radangle) + self.y0
+        return x, y
+
+    def _save_annotated(self, idx: int) -> None:
+        """Creates and saves annotated plot."""
+        x, y = self._read_annotations()
+        dists, angles = self._to_polar(x, y)
+        newangles = np.arange(360)
+        newdists  = np.interp(newangles, angles, dists, period=360)
+        x, y = self._to_euclid(newangles, newdists)
+        frame = self.pb.video[idx]
+        frame = self._remove_scale(frame)
+        fig, ax = plt.subplots(figsize=(8, 8), tight_layout=True)
+        ax.imshow(frame, cmap='gray')
+        ax.plot(x, y, lw=self.annotation_lw, c=self.annotation_color)
+        ax.axis('off')
+        savename = f'{self.output_path}/annotated_{idx:04}.png'
+        plt.savefig(savename)
+        plt.close()
+
     def _make_gif(self, idxs: np.ndarray) -> None:
         """Creates gif based on base indices."""
         inverse_idxs = idxs[::-1][1:]
@@ -342,6 +397,7 @@ class MultiFrameViewer:
     def saver(self, event) -> None:
         """Saves annotated data and associated gif."""
         self._save_frame(self.current_idx, 'raw')
+        self._save_annotated(self.current_idx)
         gif_idxs = self._gif_frame_idx()
         for idx in gif_idxs:
             self._save_frame(idx, 'gif')
